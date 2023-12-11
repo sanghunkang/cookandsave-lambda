@@ -1,0 +1,43 @@
+service: news-api-server
+frameworkVersion: '3'
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: dev
+  region: ap-northeast-2
+
+package:
+  exclude:
+    - node_modules/**
+    - venv/**
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+          path: /hello
+          method: get
+          cors: true
+  news_trends:
+    handler: services.news_trends.main
+    events:
+      - http:
+          path: /news-trends
+          method: get
+          cors: true
+  recommend_recipe:
+    handler: services.recommend_recipe.main
+    events:
+      - http:
+          path: /recommend_recipe
+          method: get
+          cors: true
