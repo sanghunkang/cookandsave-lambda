@@ -6,7 +6,8 @@ import pandas as pd
 import numpy as np
 
 # print(os.getcwd())
-RAW_CSV = 'services/foods_data.csv'
+# RAW_CSV = 'services/foods_data.csv'
+RAW_CSV = 'services/231210_recipe_DB_ver1.csv'
 FILEPATH_EMBEDDINGS = 'services/ingredient_embeddings.csv'
 
 # Function to calculate cosine similarity
@@ -52,9 +53,13 @@ class RecipeRecommedModel:
     def load_data(self, path):
 
         if path != None:
-            self.data = pd.read_csv(path)
-        else:
-            self.data = pd.read_csv(RAW_CSV)
+            if path.lower().endswith("csv"):
+                self.data = pd.read_csv(path)
+            
+            elif path.lower().endswith("xlsx"):
+                self.data = pd.read_excel(path)
+
+
 
         if "main_ing" in self.data.columns:
             self.data['main_ing'] = self.data['main_ing'].apply(lambda x: x.split(','))
@@ -67,15 +72,16 @@ class RecipeRecommedModel:
             self.data['total_ingredient'] = self.data['total_ingredient'].apply(lambda x: [i.replace("[",'') for i in x])
             self.data['total_ingredient'] = self.data['total_ingredient'].apply(lambda x: [i.replace("]",'') for i in x])
 
-            self.data['steps'] = self.data['steps'].apply(lambda x: x[1:-1].split("',"))
-            self.data['steps'] = self.data['steps'].apply(lambda x: [i.replace("'",'') for i in x])
-            self.data['steps'] = self.data['steps'].apply(lambda x: [i.replace("[",'') for i in x])
-            self.data['steps'] = self.data['steps'].apply(lambda x: [i.replace("]",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: x[1:-1].split("',"))
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("'",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("[",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("]",'') for i in x])
 
-            self.data['tags'] = self.data['tags'].apply(lambda x: x[1:-1].split(','))
-            self.data['tags'] = self.data['tags'].apply(lambda x: [i.replace("'",'') for i in x])
-            self.data['tags'] = self.data['tags'].apply(lambda x: [i.replace("[",'') for i in x])
-            self.data['tags'] = self.data['tags'].apply(lambda x: [i.replace("]",'') for i in x])
+            self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: x[1:-1].split(','))
+            self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: [i.replace("'",'') for i in x])
+            self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: [i.replace("[",'') for i in x])
+            self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: [i.replace("]",'') for i in x])
+
         else:
             print("Raw Data Error")
             return
@@ -116,16 +122,18 @@ class RecipeRecommedModel:
             return
 
         if menu_id:
-            return [(self.data["name"].iloc[menu_id], 1)]
+            return [(self.data["MENU NAME"].iloc[menu_id], 1)]
 
 
         if food:
-            if food not in self.data['name'].values:
+            if food not in self.data['MENU NAME'].values:
                 print("Food is not in data")
                 return
             
-            selected_food = self.data[self.data['name'] == food]
+            selected_food = self.data[self.data['MENU NAME'] == food]
             selected_ingredients = selected_food['main_ing'].values[0]
+        
+        
         elif ingredients:
             selected_ingredients = ingredients
         
@@ -142,15 +150,15 @@ class RecipeRecommedModel:
             temp_food = self.data.iloc[i]
             main_ingredient = temp_food['main_ing']
 
-            if temp_food['name'] == food:
+            if temp_food['MENU NAME'] == food:
                 continue
 
             for ingredient in main_ingredient:
                 if ingredient in similar_ingredients.keys():
-                    recipe_scores[temp_food['name']] += similar_ingredients[ingredient]
+                    recipe_scores[temp_food['MENU NAME']] += similar_ingredients[ingredient]
                 
                 if ingredient in selected_ingredients:
-                    recipe_scores[temp_food['name']] += 1
+                    recipe_scores[temp_food['MENU NAME']] += 1
 
         ranked_recipes = sorted(recipe_scores.items(), key=lambda x: x[1], reverse=True)
         return ranked_recipes
@@ -161,19 +169,60 @@ class RecipeRecommedModel:
         temp_json_list = []
         length = max(len(recommend_results), recommend_len)
 
+        
+
         for i in range(length):
-            result_food = self.data[self.data['name'] == recommend_results[i][0]]
+            result_food = self.data[self.data['MENU NAME'] == recommend_results[i][0]]
 
             file_data = OrderedDict()
-            file_data["id"] = str(result_food['name'].index[0])
-            file_data["name"] = result_food['name'].values[0]
-            file_data["description"] = result_food['description'].values[0]
-            file_data["steps"] = result_food['steps'].values[0]
-            file_data["tags"] = result_food['tags'].values[0]
+            file_data["id"] = str(result_food['MENU NAME'].index[0])
+            file_data["name"] = result_food['MENU NAME'].values[0]
+            file_data["description"] = result_food['MENU DESCRIPTION'].values[0]
+            file_data["servings"] = float(result_food['SERVINGS'].values[0].strip("인분"))
+            file_data["selfcost"] = int(result_food['RECIPE TOTAL PRICE'].values[0].replace(",",""))
+            file_data["outcost"] = int(result_food['RESTAURANT PRICE'].values[0].replace(",",""))
+            file_data["level"] = result_food['LEVEL'].values[0]
+            file_data["time"] = result_food['COOK TIME'].values[0]
+            file_data["steps"] = result_food['COOK STEP'].values[0]
+            file_data["tags"] = result_food['MENU THEME'].values[0]
             file_data["ingredients"] = result_food['total_ingredient'].values[0]
+            file_data["url"] = result_food['url'].values[0]
 
             # temp_json_list.append(json.dumps(file_data, ensure_ascii=False, indent="\t"))
             temp_json_list.append(file_data)
+
+        return temp_json_list
+
+    def convert_to_json_theme(self, theme, recommend_len) -> dict:
+
+        temp_json_list = []
+
+            # self.data[self.data['MENU THEME'].str.contains(theme, na=False)].iterrows()
+        self.data['MENU THEME'] = self.data['MENU THEME'].map(str)
+
+        for i, result_food in self.data[self.data['MENU THEME'].str.contains(theme, na=False)].iterrows():
+            result_food = self.data[self.data['MENU NAME'] == result_food['MENU NAME']]
+
+            file_data = OrderedDict()
+            file_data["id"] = str(result_food['MENU NAME'].index[0])
+            file_data["name"] = result_food['MENU NAME'].values[0]
+            file_data["description"] = result_food['MENU DESCRIPTION'].values[0]
+            file_data["servings"] = float(result_food['SERVINGS'].values[0].strip("인분"))
+            file_data["selfcost"] = int(result_food['RECIPE TOTAL PRICE'].values[0].replace(",",""))
+            file_data["outcost"] = int(result_food['RESTAURANT PRICE'].values[0].replace(",",""))
+            file_data["level"] = result_food['LEVEL'].values[0]
+            file_data["time"] = result_food['COOK TIME'].values[0]
+
+            file_data["steps"] = result_food['COOK STEP'].values[0]
+            file_data["tags"] = result_food['MENU THEME'].values[0]
+            file_data["ingredients"] = result_food['total_ingredient'].values[0]
+            file_data["url"] = result_food['url'].values[0]
+
+            # temp_json_list.append(json.dumps(file_data, ensure_ascii=False, indent="\t"))
+            temp_json_list.append(file_data)
+
+            if len(temp_json_list) == recommend_len:
+                break
 
         return temp_json_list
 
@@ -183,10 +232,12 @@ rcmd_model.set_init()
 def main(event, context):
     params = event.get('queryStringParameters')
 
-    menu_id = int(params.get('id'))
+    menu_id = int(params.get('id')) if params.get('id') else None
     menu = params.get('menu')
+    theme = params.get('theme')
     ingredients = params.get('ingredients').split(",") if params.get('ingredients') else None
     
+    json_list = []
     if menu_id:
         result_list = rcmd_model.recommend_recipes(menu_id=menu_id)
         json_list = rcmd_model.convert_to_json(result_list, 10)
@@ -195,12 +246,16 @@ def main(event, context):
         result_list = rcmd_model.recommend_recipes(food=menu)
         json_list = rcmd_model.convert_to_json(result_list, 10)
     
+    elif theme:
+        json_list = rcmd_model.convert_to_json_theme(theme, 10)
+
     elif ingredients:
         result_list = rcmd_model.recommend_recipes(ingredients=ingredients)
         json_list = rcmd_model.convert_to_json(result_list, 10)
 
-    else:
-        json_list = []
+    if not json_list:
+        result_list = rcmd_model.recommend_recipes(food="짬뽕")
+        json_list = rcmd_model.convert_to_json(result_list, 10)
 
     response = {
         "statusCode": 200,
@@ -223,9 +278,10 @@ if __name__ == '__main__':
 
     # while True:
     # result_list = rcmd_model.recommend_recipes(food='짬뽕')
-    result_list = rcmd_model.recommend_recipes(ingredients=['고구마','모짜렐라 치즈','소금','식용유','전분'])
+    # result_list = rcmd_model.recommend_recipes(ingredients=['고구마','모짜렐라 치즈','소금','식용유','전분'])
     # result_list = rcmd_model.recommend_recipes(menu_id=2)
-    json_list = rcmd_model.convert_to_json(result_list, 10)
-    print(result_list)
+    # json_list = rcmd_model.convert_to_json(result_list, 10)
+    json_list = rcmd_model.convert_to_json_theme("안주", 10)
+    # print(result_list)
     print(json_list[0])
 

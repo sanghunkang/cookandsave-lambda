@@ -18,6 +18,7 @@ package:
   exclude:
     - node_modules/**
     - venv/**
+    - venv-lambda/**
 
 functions:
   hello:
