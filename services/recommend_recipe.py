@@ -6,7 +6,8 @@ import pandas as pd
 import numpy as np
 
 # print(os.getcwd())
-RAW_CSV = 'services/foods_data.csv'
+# RAW_CSV = 'services/foods_data.csv'
+RAW_CSV = '231210_recipe_DB_ver1.xlsx'
 FILEPATH_EMBEDDINGS = 'services/ingredient_embeddings.csv'
 
 # Function to calculate cosine similarity
@@ -54,7 +55,8 @@ class RecipeRecommedModel:
         if path != None:
             self.data = pd.read_csv(path)
         else:
-            self.data = pd.read_csv(RAW_CSV)
+            self.data = pd.read_excel(RAW_CSV)
+
 
         if "main_ing" in self.data.columns:
             self.data['main_ing'] = self.data['main_ing'].apply(lambda x: x.split(','))
@@ -67,15 +69,16 @@ class RecipeRecommedModel:
             self.data['total_ingredient'] = self.data['total_ingredient'].apply(lambda x: [i.replace("[",'') for i in x])
             self.data['total_ingredient'] = self.data['total_ingredient'].apply(lambda x: [i.replace("]",'') for i in x])
 
-            self.data['steps'] = self.data['steps'].apply(lambda x: x[1:-1].split("',"))
-            self.data['steps'] = self.data['steps'].apply(lambda x: [i.replace("'",'') for i in x])
-            self.data['steps'] = self.data['steps'].apply(lambda x: [i.replace("[",'') for i in x])
-            self.data['steps'] = self.data['steps'].apply(lambda x: [i.replace("]",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: x[1:-1].split("',"))
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("'",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("[",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("]",'') for i in x])
 
-            self.data['tags'] = self.data['tags'].apply(lambda x: x[1:-1].split(','))
-            self.data['tags'] = self.data['tags'].apply(lambda x: [i.replace("'",'') for i in x])
-            self.data['tags'] = self.data['tags'].apply(lambda x: [i.replace("[",'') for i in x])
-            self.data['tags'] = self.data['tags'].apply(lambda x: [i.replace("]",'') for i in x])
+            self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: x[1:-1].split(','))
+            self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: [i.replace("'",'') for i in x])
+            self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: [i.replace("[",'') for i in x])
+            self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: [i.replace("]",'') for i in x])
+
         else:
             print("Raw Data Error")
             return
@@ -111,12 +114,12 @@ class RecipeRecommedModel:
             print("Data is None")
             return
         
-        if food:
-            if food not in self.data['name'].values:
+       if food:
+            if food not in self.data['MENU NAME'].values:
                 print("Food is not in data")
                 return
             
-            selected_food = self.data[self.data['name'] == food]
+            selected_food = self.data[self.data['MENU NAME'] == food]
             selected_ingredients = selected_food['main_ing'].values[0]
         elif ingredients:
             selected_ingredients = ingredients
@@ -134,15 +137,15 @@ class RecipeRecommedModel:
             temp_food = self.data.iloc[i]
             main_ingredient = temp_food['main_ing']
 
-            if temp_food['name'] == food:
+            if temp_food['MENU NAME'] == food:
                 continue
 
             for ingredient in main_ingredient:
                 if ingredient in similar_ingredients.keys():
-                    recipe_scores[temp_food['name']] += similar_ingredients[ingredient]
+                    recipe_scores[temp_food['MENU NAME']] += similar_ingredients[ingredient]
                 
                 if ingredient in selected_ingredients:
-                    recipe_scores[temp_food['name']] += 1
+                    recipe_scores[temp_food['MENU NAME']] += 1
 
         ranked_recipes = sorted(recipe_scores.items(), key=lambda x: x[1], reverse=True)
         return ranked_recipes
@@ -154,14 +157,14 @@ class RecipeRecommedModel:
         length = max(len(recommend_results), recommend_len)
 
         for i in range(length):
-            result_food = self.data[self.data['name'] == recommend_results[i][0]]
+            result_food = self.data[self.data['MENU NAME'] == recommend_results[i][0]]
 
             file_data = OrderedDict()
-            file_data["id"] = str(result_food['name'].index[0])
-            file_data["name"] = result_food['name'].values[0]
-            file_data["description"] = result_food['description'].values[0]
-            file_data["steps"] = result_food['steps'].values[0]
-            file_data["tags"] = result_food['tags'].values[0]
+            file_data["id"] = str(result_food['MENU NAME'].index[0])
+            file_data["MENU NAME"] = result_food['MENU NAME'].values[0]
+            file_data["MENU DESCRIPTION"] = result_food['MENU DESCRIPTION'].values[0]
+            file_data["COOK STEP"] = result_food['COOK STEP'].values[0]
+            file_data["MENU THEME"] = result_food['MENU THEME'].values[0]
             file_data["ingredients"] = result_food['total_ingredient'].values[0]
 
             # temp_json_list.append(json.dumps(file_data, ensure_ascii=False, indent="\t"))
