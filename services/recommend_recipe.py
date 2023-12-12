@@ -102,7 +102,7 @@ class RecipeRecommedModel:
         
         print('Success to set model')
 
-    def recommend_recipes(self, food):
+    def recommend_recipes(self, food: str=None, ingredients: list[str]=None):
         # if self.model is None:
         #     print("Model is None")
         #     return
@@ -111,20 +111,22 @@ class RecipeRecommedModel:
             print("Data is None")
             return
         
-        if food not in self.data['name'].values:
-            print("Food is not in data")
-            return
+        if food:
+            if food not in self.data['name'].values:
+                print("Food is not in data")
+                return
+            
+            selected_food = self.data[self.data['name'] == food]
+            selected_ingredients = selected_food['main_ing'].values[0]
+        elif ingredients:
+            selected_ingredients = ingredients
         
-        selected_food = self.data[self.data['name'] == food]
-        selected_ingredients = selected_food['main_ing'].values[0]
         
-        # similar_rows = []
-        # for selected_ingredient in selected_ingredients:
-        #     similar_rows.extend(find_similar_rows(self.embeddings, selected_ingredient, num_similar=5))
         similar_rows = find_similar_rows(self.embeddings, selected_ingredients, num_similar=5)
-
         similar_ingredients = [(self.embeddings.index[i],p) for i,p in similar_rows]
         similar_ingredients = dict(similar_ingredients)
+        
+
 
         recipe_scores = defaultdict(int)
 
@@ -146,6 +148,7 @@ class RecipeRecommedModel:
         return ranked_recipes
 
     def convert_to_json(self, recommend_results, recommend_len) -> dict:
+        recommend_len = min(recommend_len, len(recommend_results))
 
         temp_json_list = []
         length = max(len(recommend_results), recommend_len)
@@ -172,20 +175,25 @@ rcmd_model.set_init()
 def main(event, context):
     params = event.get('queryStringParameters')
 
-    if params:
-        search = params.get('search')
+    # if params:
+    #     search = params.get('search')
+    # else:
+    #     search = None
+
+    # result_list = rcmd_model.recommend_recipes(search)
+    
+    if params.get('menu'):
+        menu = params.get('menu')
+        result_list = rcmd_model.recommend_recipes(food=menu)
+        json_list = rcmd_model.convert_to_json(result_list, 10)
+    
+    elif params.get('ingredients'):
+        ingredients = params.get('ingredients').split(",")
+        result_list = rcmd_model.recommend_recipes(ingredients=ingredients)
+        json_list = rcmd_model.convert_to_json(result_list, 10)
+
     else:
-        search = None
-
-    result_list = rcmd_model.recommend_recipes(search)
-    json_list = rcmd_model.convert_to_json(result_list, 10)
-    # print(json_list[0])
-
-    # body = {
-    #     'trends': trends,
-    # }
-
-    # print('body')
+        json_list = []
 
     response = {
         "statusCode": 200,
@@ -207,8 +215,9 @@ if __name__ == '__main__':
     rcmd_model.set_init()
 
     # while True:
-    result_list = rcmd_model.recommend_recipes('짬뽕')
+    # result_list = rcmd_model.recommend_recipes(food='짬뽕')
+    result_list = rcmd_model.recommend_recipes(ingredients=['팔각','파스타면'])
+    json_list = rcmd_model.convert_to_json(result_list, 10)
     print(result_list)
-    json_list = rcmd_model.convert_to_json(result_list, 3)
     print(json_list[0])
 
