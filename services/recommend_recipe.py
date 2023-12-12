@@ -7,7 +7,7 @@ import numpy as np
 
 # print(os.getcwd())
 # RAW_CSV = 'services/foods_data.csv'
-RAW_CSV = '231210_recipe_DB_ver1.xlsx'
+RAW_CSV = 'services/231210_recipe_DB_ver1.csv'
 FILEPATH_EMBEDDINGS = 'services/ingredient_embeddings.csv'
 
 # Function to calculate cosine similarity
@@ -53,9 +53,12 @@ class RecipeRecommedModel:
     def load_data(self, path):
 
         if path != None:
-            self.data = pd.read_csv(path)
-        else:
-            self.data = pd.read_excel(RAW_CSV)
+            if path.lower().endswith("csv"):
+                self.data = pd.read_csv(path)
+            
+            elif path.lower().endswith("xlsx"):
+                self.data = pd.read_excel(path)
+
 
 
         if "main_ing" in self.data.columns:
@@ -105,7 +108,11 @@ class RecipeRecommedModel:
         
         print('Success to set model')
 
-    def recommend_recipes(self, food: str=None, ingredients: list[str]=None):
+    def recommend_recipes(self,
+        menu_id: int=None, 
+        food: str=None, 
+        ingredients: list[str]=None,
+    ):
         # if self.model is None:
         #     print("Model is None")
         #     return
@@ -113,14 +120,20 @@ class RecipeRecommedModel:
         if self.data is None:
             print("Data is None")
             return
-        
-       if food:
+
+        if menu_id:
+            return [(self.data["MENU NAME"].iloc[menu_id], 1)]
+
+
+        if food:
             if food not in self.data['MENU NAME'].values:
                 print("Food is not in data")
                 return
             
             selected_food = self.data[self.data['MENU NAME'] == food]
             selected_ingredients = selected_food['main_ing'].values[0]
+        
+        
         elif ingredients:
             selected_ingredients = ingredients
         
@@ -156,19 +169,60 @@ class RecipeRecommedModel:
         temp_json_list = []
         length = max(len(recommend_results), recommend_len)
 
+        
+
         for i in range(length):
             result_food = self.data[self.data['MENU NAME'] == recommend_results[i][0]]
 
             file_data = OrderedDict()
             file_data["id"] = str(result_food['MENU NAME'].index[0])
-            file_data["MENU NAME"] = result_food['MENU NAME'].values[0]
-            file_data["MENU DESCRIPTION"] = result_food['MENU DESCRIPTION'].values[0]
-            file_data["COOK STEP"] = result_food['COOK STEP'].values[0]
-            file_data["MENU THEME"] = result_food['MENU THEME'].values[0]
+            file_data["name"] = result_food['MENU NAME'].values[0]
+            file_data["description"] = result_food['MENU DESCRIPTION'].values[0]
+            file_data["servings"] = float(result_food['SERVINGS'].values[0].strip("인분"))
+            file_data["selfcost"] = int(result_food['RECIPE TOTAL PRICE'].values[0].replace(",",""))
+            file_data["outcost"] = int(result_food['RESTAURANT PRICE'].values[0].replace(",",""))
+            file_data["level"] = result_food['LEVEL'].values[0]
+            file_data["time"] = result_food['COOK TIME'].values[0]
+            file_data["steps"] = result_food['COOK STEP'].values[0]
+            file_data["tags"] = result_food['MENU THEME'].values[0]
             file_data["ingredients"] = result_food['total_ingredient'].values[0]
+            file_data["url"] = result_food['url'].values[0]
 
             # temp_json_list.append(json.dumps(file_data, ensure_ascii=False, indent="\t"))
             temp_json_list.append(file_data)
+
+        return temp_json_list
+
+    def convert_to_json_theme(self, theme, recommend_len) -> dict:
+
+        temp_json_list = []
+
+            # self.data[self.data['MENU THEME'].str.contains(theme, na=False)].iterrows()
+        self.data['MENU THEME'] = self.data['MENU THEME'].map(str)
+
+        for i, result_food in self.data[self.data['MENU THEME'].str.contains(theme, na=False)].iterrows():
+            result_food = self.data[self.data['MENU NAME'] == result_food['MENU NAME']]
+
+            file_data = OrderedDict()
+            file_data["id"] = str(result_food['MENU NAME'].index[0])
+            file_data["name"] = result_food['MENU NAME'].values[0]
+            file_data["description"] = result_food['MENU DESCRIPTION'].values[0]
+            file_data["servings"] = float(result_food['SERVINGS'].values[0].strip("인분"))
+            file_data["selfcost"] = int(result_food['RECIPE TOTAL PRICE'].values[0].replace(",",""))
+            file_data["outcost"] = int(result_food['RESTAURANT PRICE'].values[0].replace(",",""))
+            file_data["level"] = result_food['LEVEL'].values[0]
+            file_data["time"] = result_food['COOK TIME'].values[0]
+
+            file_data["steps"] = result_food['COOK STEP'].values[0]
+            file_data["tags"] = result_food['MENU THEME'].values[0]
+            file_data["ingredients"] = result_food['total_ingredient'].values[0]
+            file_data["url"] = result_food['url'].values[0]
+
+            # temp_json_list.append(json.dumps(file_data, ensure_ascii=False, indent="\t"))
+            temp_json_list.append(file_data)
+
+            if len(temp_json_list) == recommend_len:
+                break
 
         return temp_json_list
 
@@ -178,25 +232,30 @@ rcmd_model.set_init()
 def main(event, context):
     params = event.get('queryStringParameters')
 
-    # if params:
-    #     search = params.get('search')
-    # else:
-    #     search = None
-
-    # result_list = rcmd_model.recommend_recipes(search)
+    menu_id = int(params.get('id')) if params.get('id') else None
+    menu = params.get('menu')
+    theme = params.get('theme')
+    ingredients = params.get('ingredients').split(",") if params.get('ingredients') else None
     
-    if params.get('menu'):
-        menu = params.get('menu')
+    json_list = []
+    if menu_id:
+        result_list = rcmd_model.recommend_recipes(menu_id=menu_id)
+        json_list = rcmd_model.convert_to_json(result_list, 10)
+    
+    elif menu:
         result_list = rcmd_model.recommend_recipes(food=menu)
         json_list = rcmd_model.convert_to_json(result_list, 10)
     
-    elif params.get('ingredients'):
-        ingredients = params.get('ingredients').split(",")
+    elif theme:
+        json_list = rcmd_model.convert_to_json_theme(theme, 10)
+
+    elif ingredients:
         result_list = rcmd_model.recommend_recipes(ingredients=ingredients)
         json_list = rcmd_model.convert_to_json(result_list, 10)
 
-    else:
-        json_list = []
+    if not json_list:
+        result_list = rcmd_model.recommend_recipes(food="짬뽕")
+        json_list = rcmd_model.convert_to_json(result_list, 10)
 
     response = {
         "statusCode": 200,
@@ -219,8 +278,10 @@ if __name__ == '__main__':
 
     # while True:
     # result_list = rcmd_model.recommend_recipes(food='짬뽕')
-    result_list = rcmd_model.recommend_recipes(ingredients=['팔각','파스타면'])
-    json_list = rcmd_model.convert_to_json(result_list, 10)
-    print(result_list)
+    # result_list = rcmd_model.recommend_recipes(ingredients=['고구마','모짜렐라 치즈','소금','식용유','전분'])
+    # result_list = rcmd_model.recommend_recipes(menu_id=2)
+    # json_list = rcmd_model.convert_to_json(result_list, 10)
+    json_list = rcmd_model.convert_to_json_theme("안주", 10)
+    # print(result_list)
     print(json_list[0])
 

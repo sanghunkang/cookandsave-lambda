@@ -23,3 +23,4 @@ var/
 .serverless
 .DS_Store
 node_modules/
+venv-lambda/
