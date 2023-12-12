@@ -102,7 +102,11 @@ class RecipeRecommedModel:
         
         print('Success to set model')
 
-    def recommend_recipes(self, food: str=None, ingredients: list[str]=None):
+    def recommend_recipes(self,
+        menu_id: int=None, 
+        food: str=None, 
+        ingredients: list[str]=None,
+    ):
         # if self.model is None:
         #     print("Model is None")
         #     return
@@ -110,7 +114,11 @@ class RecipeRecommedModel:
         if self.data is None:
             print("Data is None")
             return
-        
+
+        if menu_id:
+            return [(self.data["name"].iloc[menu_id], 1)]
+
+
         if food:
             if food not in self.data['name'].values:
                 print("Food is not in data")
@@ -175,20 +183,19 @@ rcmd_model.set_init()
 def main(event, context):
     params = event.get('queryStringParameters')
 
-    # if params:
-    #     search = params.get('search')
-    # else:
-    #     search = None
-
-    # result_list = rcmd_model.recommend_recipes(search)
+    menu_id = int(params.get('id'))
+    menu = params.get('menu')
+    ingredients = params.get('ingredients').split(",") if params.get('ingredients') else None
     
-    if params.get('menu'):
-        menu = params.get('menu')
+    if menu_id:
+        result_list = rcmd_model.recommend_recipes(menu_id=menu_id)
+        json_list = rcmd_model.convert_to_json(result_list, 10)
+    
+    elif menu:
         result_list = rcmd_model.recommend_recipes(food=menu)
         json_list = rcmd_model.convert_to_json(result_list, 10)
     
-    elif params.get('ingredients'):
-        ingredients = params.get('ingredients').split(",")
+    elif ingredients:
         result_list = rcmd_model.recommend_recipes(ingredients=ingredients)
         json_list = rcmd_model.convert_to_json(result_list, 10)
 
@@ -216,7 +223,8 @@ if __name__ == '__main__':
 
     # while True:
     # result_list = rcmd_model.recommend_recipes(food='짬뽕')
-    result_list = rcmd_model.recommend_recipes(ingredients=['팔각','파스타면'])
+    result_list = rcmd_model.recommend_recipes(ingredients=['고구마','모짜렐라 치즈','소금','식용유','전분'])
+    # result_list = rcmd_model.recommend_recipes(menu_id=2)
     json_list = rcmd_model.convert_to_json(result_list, 10)
     print(result_list)
     print(json_list[0])
