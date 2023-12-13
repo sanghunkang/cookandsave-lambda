@@ -127,13 +127,20 @@ class RecipeRecommedModel:
         if menu_id:
             return [(self.data["MENU NAME"].iloc[menu_id], 1)]
 
-
         if food:
             if food not in self.data['MENU NAME'].values:
-                print("Food is not in data")
-                return
-            
-            selected_food = self.data[self.data['MENU NAME'] == food]
+                if len(self.data[self.data['MENU NAME'].str.contains(food, na=False)]) > 0 :
+                    selected_food = self.data[self.data['MENU NAME'].str.contains(food, na=False)]
+                    ranked_recipes = [(row['MENU NAME'], 1) for i, row in selected_food.iterrows()]
+                    return ranked_recipes
+                        
+
+
+                else:
+                    print("Food is not in data")
+                    return
+            else:
+                selected_food = self.data[self.data['MENU NAME'] == food]
             selected_ingredients = selected_food['main_ing'].values[0]
         
         
