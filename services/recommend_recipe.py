@@ -124,13 +124,20 @@ class RecipeRecommedModel:
         if menu_id:
             return [(self.data["MENU NAME"].iloc[menu_id], 1)]
 
-
         if food:
             if food not in self.data['MENU NAME'].values:
-                print("Food is not in data")
-                return
-            
-            selected_food = self.data[self.data['MENU NAME'] == food]
+                if len(self.data[self.data['MENU NAME'].str.contains(food, na=False)]) > 0 :
+                    selected_food = self.data[self.data['MENU NAME'].str.contains(food, na=False)]
+                    ranked_recipes = [(row['MENU NAME'], 1) for i, row in selected_food.iterrows()]
+                    return ranked_recipes
+                        
+
+
+                else:
+                    print("Food is not in data")
+                    return
+            else:
+                selected_food = self.data[self.data['MENU NAME'] == food]
             selected_ingredients = selected_food['main_ing'].values[0]
         
         
@@ -277,11 +284,11 @@ if __name__ == '__main__':
     rcmd_model.set_init()
 
     # while True:
-    # result_list = rcmd_model.recommend_recipes(food='짬뽕')
+    result_list = rcmd_model.recommend_recipes(food='초밥')
     # result_list = rcmd_model.recommend_recipes(ingredients=['고구마','모짜렐라 치즈','소금','식용유','전분'])
     # result_list = rcmd_model.recommend_recipes(menu_id=2)
-    # json_list = rcmd_model.convert_to_json(result_list, 10)
-    json_list = rcmd_model.convert_to_json_theme("안주", 10)
+    json_list = rcmd_model.convert_to_json(result_list, 10)
+    # json_list = rcmd_model.convert_to_json_theme("안주", 10)
     # print(result_list)
     print(json_list[0])
 
