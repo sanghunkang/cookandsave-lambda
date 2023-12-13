@@ -91,6 +91,17 @@ class RecipeRecommedModel:
             self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("Step 9",'') for i in x])
             self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("완료",'') for i in x])
             self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace(" :",'') for i in x])
+
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("STEP 1",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("STEP 2",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("STEP 3",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("STEP 4",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("STEP 5",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("STEP 6",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("STEP 7",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("STEP 8",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("STEP 9",'') for i in x])
+            
             #trim
             self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.strip() for i in x])
 
