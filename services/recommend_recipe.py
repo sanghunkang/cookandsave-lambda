@@ -137,6 +137,8 @@ class RecipeRecommedModel:
         #     print("Model is None")
         #     return
 
+        recipe_scores = defaultdict(int)
+
         if self.data is None:
             print("Data is None")
             return
@@ -150,8 +152,6 @@ class RecipeRecommedModel:
                     selected_food = self.data[self.data['MENU NAME'].str.contains(food, na=False)]
                     ranked_recipes = [(row['MENU NAME'], 1) for i, row in selected_food.iterrows()]
                     return ranked_recipes
-                        
-
 
                 else:
                     print("Food is not in data")
@@ -159,7 +159,8 @@ class RecipeRecommedModel:
             else:
                 selected_food = self.data[self.data['MENU NAME'] == food]
             selected_ingredients = selected_food['main_ing'].values[0]
-        
+            recipe_scores[food] += 100
+
         
         elif ingredients:
             selected_ingredients = ingredients
@@ -169,10 +170,6 @@ class RecipeRecommedModel:
         similar_ingredients = [(self.embeddings.index[i],p) for i,p in similar_rows]
         similar_ingredients = dict(similar_ingredients)
         
-
-
-        recipe_scores = defaultdict(int)
-
         for i in range(len(self.data)):
             temp_food = self.data.iloc[i]
             main_ingredient = temp_food['main_ing']
