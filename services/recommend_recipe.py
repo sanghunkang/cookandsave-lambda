@@ -7,7 +7,7 @@ import numpy as np
 
 # print(os.getcwd())
 # RAW_CSV = 'services/foods_data.csv'
-RAW_CSV = 'services/231210_recipe_DB_ver1.csv'
+RAW_CSV = 'services/231213_recipe_DB_ver2.csv'
 FILEPATH_EMBEDDINGS = 'services/ingredient_embeddings.csv'
 
 # Function to calculate cosine similarity
@@ -81,6 +81,9 @@ class RecipeRecommedModel:
             self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: [i.replace("'",'') for i in x])
             self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: [i.replace("[",'') for i in x])
             self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: [i.replace("]",'') for i in x])
+
+            self.data['total_ing_with_gram'] = self.data['total_ing_with_gram'].apply(lambda x: x.split(','))
+
 
         else:
             print("Raw Data Error")
@@ -194,6 +197,8 @@ class RecipeRecommedModel:
             file_data["tags"] = result_food['MENU THEME'].values[0]
             file_data["ingredients"] = result_food['total_ingredient'].values[0]
             file_data["url"] = result_food['url'].values[0]
+            file_data['grams'] = result_food['total_ing_with_gram'].values[0]
+
 
             # temp_json_list.append(json.dumps(file_data, ensure_ascii=False, indent="\t"))
             temp_json_list.append(file_data)
@@ -224,6 +229,8 @@ class RecipeRecommedModel:
             file_data["tags"] = result_food['MENU THEME'].values[0]
             file_data["ingredients"] = result_food['total_ingredient'].values[0]
             file_data["url"] = result_food['url'].values[0]
+            file_data['grams'] = result_food['total_ing_with_gram'].values[0]
+
 
             # temp_json_list.append(json.dumps(file_data, ensure_ascii=False, indent="\t"))
             temp_json_list.append(file_data)
@@ -284,11 +291,11 @@ if __name__ == '__main__':
     rcmd_model.set_init()
 
     # while True:
-    result_list = rcmd_model.recommend_recipes(food='초밥')
+    # result_list = rcmd_model.recommend_recipes(food='짬뽕')
     # result_list = rcmd_model.recommend_recipes(ingredients=['고구마','모짜렐라 치즈','소금','식용유','전분'])
     # result_list = rcmd_model.recommend_recipes(menu_id=2)
-    json_list = rcmd_model.convert_to_json(result_list, 10)
-    # json_list = rcmd_model.convert_to_json_theme("안주", 10)
+    # json_list = rcmd_model.convert_to_json(result_list, 10)
+    json_list = rcmd_model.convert_to_json_theme("안주", 10)
     # print(result_list)
     print(json_list[0])
 
