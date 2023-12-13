@@ -79,6 +79,7 @@ class RecipeRecommedModel:
             self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("\\",'') for i in x])
             self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("r",'') for i in x])
             self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("n",'') for i in x])
+            self.data['COOK STEP'] = self.data['COOK STEP'].apply(lambda x: [i.replace("xa0",'') for i in x])
 
             self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: x[1:-1].split(','))
             self.data['MENU THEME'] = self.data['MENU THEME'].apply(lambda x: [i.replace("'",'') for i in x])
